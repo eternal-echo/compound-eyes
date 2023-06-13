@@ -2,51 +2,42 @@ import zmq
 import cv2
 from wrappers import ImageWrapper
 
+
 def main():
-    video = cv2.VideoCapture(0)
-
-    if not video.isOpened():
-        video.open(0)
-
     context = zmq.Context()
-    socket = context.socket(zmq.PUB)
+    socket = context.socket(zmq.SUB)
     socket.bind("tcp://*:5555")
 
-    read = True
+    g_run = True
     num_frames = 0
-    topic = "image".encode()
+    topic = "image"
+    len_topic = len(topic.encode())
+    socket.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-    while read:
+    image_wrapper = ImageWrapper()
+
+    while g_run:
 
         try:
-            success, image = video.read()
+            data = socket.recv()
+            image_bytes = data[len_topic:]
 
+            image_wrapper.image_pb.ParseFromString(image_bytes)
+
+            success, image = image_wrapper.get_open_cv_image()
             if success:
-                num_frames += 1
-
-                # Convert to gray scale image
-                # image = cv2.resize(image, dsize=(0, 0),
-                #                    fx=0.25, fy=0.25)
-                # image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-                # initialize new protobuf image
-                image_wrapper = ImageWrapper()
-                # image_wrapper.copy_from_cv_image(image_gray)
-                image_wrapper.copy_from_cv_image(image)
-
-                # serial to string, pack into message
-                msg = topic+image_wrapper.image_pb.SerializeToString()
-
-                # Send message
-                socket.send(msg)
+                cv2.imshow("display", image)
+                key = cv2.waitKey(1)
+                if key == 'q':
+                    g_run = False
 
         except KeyboardInterrupt:
             print("Interrupt received, stopping...")
-            read = False
+            g_run = False
 
-    video.release()
     socket.close()
     context.term()
+
 
 if __name__ == "__main__":
     main()
