@@ -15,7 +15,7 @@ class ImageWrapper(object):
         if input_image.IsInitialized():
             self.image_pb.CopyFrom(input_image)
 
-    def copy_from_cv_image(self, input_image, timestamp=0, fmt='bgr'):
+    def copy_from_cv_image(self, input_image, timestamp=0, fmt='bgr', channel_id=0):
 
         self.image_pb.timestamp = timestamp
 
@@ -29,6 +29,8 @@ class ImageWrapper(object):
             self.image_pb.channels = 1
 
         self.image_pb.format = fmt
+
+        self.image_pb.channel_id = channel_id
 
         self.image_pb.image_bytes = input_image.tobytes()
 
